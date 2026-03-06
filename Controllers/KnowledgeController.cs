@@ -73,4 +73,20 @@ public class KnowledgeController : ControllerBase
         var docs = await _vectorSearch.GetAllDocumentsAsync();
         return Ok(docs);
     }
+    // Temporary debug endpoint — remove after fixing
+    [HttpGet("debug")]
+    public IActionResult Debug()
+    {
+        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+        var pgHost = Environment.GetEnvironmentVariable("PGHOST");
+        var connString = _vectorSearch.GetConnectionStatus();
+
+        return Ok(new
+        {
+            DATABASE_URL_exists = !string.IsNullOrEmpty(databaseUrl),
+            PGHOST_exists = !string.IsNullOrEmpty(pgHost),
+            DATABASE_URL_value = databaseUrl?[..Math.Min(30, databaseUrl?.Length ?? 0)] + "...",
+            connString_empty = string.IsNullOrEmpty(connString)
+        });
+    }
 }

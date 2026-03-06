@@ -7,6 +7,7 @@ public class VectorSearchService
 {
     private readonly string _connString;
 
+    public string GetConnectionStatus() => _connString;
     public VectorSearchService(IConfiguration config)
     {
         // Try DATABASE_URL first (Railway always provides this)
