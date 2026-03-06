@@ -1,0 +1,7 @@
+## Hide secrets and build files
+appsettings.json
+appsettings.Development.json
+bin/
+obj/
+.vs/
+*.user

@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Knowledge Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0d1421;
+    --surface2: #111d2e;
+    --border: #1e3050;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --green: #00ff88;
+    --orange: #ff8c42;
+    --red: #ff4757;
+    --text: #e2eaf5;
+    --muted: #5a7a9a;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb.one { width: 500px; height: 500px; background: rgba(0,212,255,0.06); top: -100px; left: -100px; }
+  .glow-orb.two { width: 400px; height: 400px; background: rgba(124,58,237,0.07); bottom: -100px; right: -100px; }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .status-dot {
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Main Grid ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    margin-top: 32px;
+  }
+
+  /* ── Panel ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel-body { padding: 24px; }
+
+  /* ── Ask Panel ── */
+  .ask-panel { grid-column: 1; }
+
+  .provider-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .provider-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+
+  .provider-btn.active {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+  }
+
+  .provider-btn:hover:not(.active) {
+    border-color: var(--muted);
+    color: var(--text);
+  }
+
+  .question-area {
+    position: relative;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 15px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    min-height: 100px;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .ask-btn {
+    margin-top: 14px;
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent), #0099cc);
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .ask-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,212,255,0.3); }
+  .ask-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ── Agent Decision Badge ── */
+  .decision-badge {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-top: 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    border: 1px solid;
+  }
+
+  .decision-badge.db { background: rgba(0,255,136,0.06); border-color: rgba(0,255,136,0.2); color: var(--green); }
+  .decision-badge.direct { background: rgba(0,212,255,0.06); border-color: rgba(0,212,255,0.2); color: var(--accent); }
+  .decision-badge.external { background: rgba(255,140,66,0.06); border-color: rgba(255,140,66,0.2); color: var(--orange); }
+
+  .badge-icon { font-size: 18px; }
+
+  .badge-info { flex: 1; }
+  .badge-type { font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  .badge-reason { margin-top: 2px; opacity: 0.8; font-size: 11px; line-height: 1.4; }
+
+  /* ── Answer Box ── */
+  .answer-box {
+    display: none;
+    margin-top: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .answer-meta {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .meta-chip {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .meta-chip .val { color: var(--accent); font-weight: 600; }
+
+  .answer-text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  /* ── Confidence Bar ── */
+  .confidence-bar {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .conf-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .conf-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .conf-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 4px;
+    transition: width 0.8s ease;
+  }
+
+  /* ── Docs Panel ── */
+  .retrieved-docs {
+    display: none;
+    margin-top: 20px;
+  }
+
+  .retrieved-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .doc-chip {
+    padding: 8px 12px;
+    background: rgba(124,58,237,0.08);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 8px;
+    color: #a78bfa;
+    font-family: var(--font-mono);
+    line-height: 1.5;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .doc-chip:hover { background: rgba(124,58,237,0.14); }
+
+  /* ── Right Panel ── */
+  .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Insert Doc ── */
+  .insert-panel input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 10px;
+  }
+
+  .insert-panel input:focus { border-color: var(--accent2); }
+  .insert-panel input::placeholder { color: var(--muted); }
+
+  .insert-panel textarea { min-height: 120px; margin-bottom: 10px; }
+
+  .insert-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent2), #9333ea);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .insert-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.4); }
+  .insert-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ── Stats Panel ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── Docs List ── */
+  .docs-list { max-height: 300px; overflow-y: auto; }
+  .docs-list::-webkit-scrollbar { width: 4px; }
+  .docs-list::-webkit-scrollbar-track { background: transparent; }
+  .docs-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .doc-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    margin-bottom: 6px;
+  }
+
+  .doc-item:hover { background: var(--surface2); border-color: var(--border); }
+
+  .doc-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .doc-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .doc-preview {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ── Loading Spinner ── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(0,0,0,0.3);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Pipeline Viz ── */
+  .pipeline {
+    display: none;
+    gap: 0;
+    margin-top: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .pipe-step {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    border-left: 2px solid var(--border);
+    position: relative;
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+
+  .pipe-step.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+
+  .pipe-step.done {
+    color: var(--green);
+    border-left-color: var(--green);
+  }
+
+  .pipe-icon { font-size: 14px; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 30px; right: 30px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 1000;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: rgba(0,255,136,0.15); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
+  .toast.error { background: rgba(255,71,87,0.15); border: 1px solid rgba(255,71,87,0.3); color: var(--red); }
+
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .right-col { order: -1; }
+  }
+    /* ── Doc Chip Expand/Collapse ── */
+    .doc-chip-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        gap: 10px;
+    }
+
+    .doc-chip-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .doc-chip-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .doc-index {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--muted);
+        background: var(--border);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .doc-title-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: #a78bfa;
+    }
+
+    .doc-score {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--green);
+        background: rgba(0,255,136,0.08);
+        padding: 2px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(0,255,136,0.2);
+    }
+
+    .doc-expand-btn {
+        background: rgba(0,212,255,0.08);
+        border: 1px solid rgba(0,212,255,0.2);
+        color: var(--accent);
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: var(--font-mono);
+        transition: all 0.2s;
+    }
+
+        .doc-expand-btn:hover {
+            background: rgba(0,212,255,0.15);
+        }
+
+    .doc-arrow {
+        font-size: 10px;
+        color: var(--muted);
+        transition: all 0.2s;
+    }
+
+    .doc-chip-body {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--text);
+        white-space: pre-wrap;
+    }
+
+    /* ── Modal ── */
+    #docModal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .modal-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        width: 100%;
+        max-width: 700px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .modal-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .modal-close {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .modal-close:hover {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+    .modal-body {
+        padding: 24px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+        .modal-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+    .modal-content-text {
+        font-size: 14px;
+        line-height: 1.9;
+        color: var(--text);
+        white-space: pre-wrap;
+    }
+</style>
+</head>
+<body>
+
+    <div class="glow-orb one"></div>
+    <div class="glow-orb two"></div>
+
+    <div class="app">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🧠</div>
+                <div>
+                    <div class="logo-text">AI <span>Knowledge</span> Assistant</div>
+                    <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:2px;">RAG + Agent Orchestration · C# + PostgreSQL</div>
+                </div>
+            </div>
+            <div class="status-bar">
+                <div class="status-dot"><div class="dot"></div> <span>ONLINE</span></div>
+                <span>|</span>
+                <span id="docCount">— docs</span>
+                <span>|</span>
+                <span id="queryCount">0 queries</span>
+            </div>
+        </header>
+
+        <div class="main-grid">
+
+            <!-- ── LEFT: Ask Panel ── -->
+            <div>
+                <div class="panel ask-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">🤖 Ask the AI</span>
+                        <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">Agent Orchestration Active</span>
+                    </div>
+                    <div class="panel-body">
+
+                        <div class="provider-toggle">
+                            <button class="provider-btn active" onclick="selectProvider('openai', this)">⚡ OpenAI GPT-4</button>
+                            <button class="provider-btn" onclick="selectProvider('claude', this)">🔵 Claude Haiku</button>
+                        </div>
+
+                        <textarea id="questionInput" placeholder="Ask anything... The AI agent will decide whether to search the knowledge base, answer directly, or fetch external data." rows="4"></textarea>
+
+                        <button class="ask-btn" id="askBtn" onclick="askQuestion()">
+                            <span id="askBtnText">Ask the AI</span>
+                        </button>
+
+                        <!-- Pipeline Visualization -->
+                        <div class="pipeline" id="pipeline">
+                            <div class="pipe-step" id="step-agent"><span class="pipe-icon">🧠</span> Agent deciding strategy...</div>
+                            <div class="pipe-step" id="step-embed"><span class="pipe-icon">🔢</span> Generating embeddings...</div>
+                            <div class="pipe-step" id="step-search"><span class="pipe-icon">🔍</span> Vector search (PostgreSQL)</div>
+                            <div class="pipe-step" id="step-prompt"><span class="pipe-icon">📝</span> Building prompt</div>
+                            <div class="pipe-step" id="step-llm"><span class="pipe-icon">⚡</span> Calling LLM</div>
+                            <div class="pipe-step" id="step-done"><span class="pipe-icon">✅</span> Response ready</div>
+                        </div>
+
+                        <!-- Agent Decision Badge -->
+                        <div class="decision-badge" id="decisionBadge">
+                            <div class="badge-icon" id="badgeIcon"></div>
+                            <div class="badge-info">
+                                <div class="badge-type" id="badgeType"></div>
+                                <div class="badge-reason" id="badgeReason"></div>
+                            </div>
+                        </div>
+
+                        <!-- Answer -->
+                        <div class="answer-box" id="answerBox">
+                            <div class="answer-meta" id="answerMeta"></div>
+                            <div class="answer-text" id="answerText"></div>
+
+                            <div class="confidence-bar">
+                                <div class="conf-label">
+                                    <span>Confidence Score</span>
+                                    <span id="confValue" style="color:var(--accent)">0%</span>
+                                </div>
+                                <div class="conf-track">
+                                    <div class="conf-fill" id="confFill" style="width:0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="retrieved-docs" id="retrievedDocs">
+                                <div class="retrieved-title">📚 Retrieved Documents</div>
+                                <div id="docsContainer"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── RIGHT COLUMN ── -->
+            <div class="right-col">
+
+                <!-- Stats -->
+                <div class="panel">
+                    <div class="panel-header"><span class="panel-title">📊 Session Stats</span></div>
+                    <div class="panel-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="statDocs">—</div>
+                                <div class="stat-label">Documents</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statQueries">0</div>
+                                <div class="stat-label">Queries</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statDb" style="color:var(--green)">0</div>
+                                <div class="stat-label">DB Searches</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statDirect" style="color:var(--accent2)">0</div>
+                                <div class="stat-label">Direct Ans.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insert Document -->
+                <div class="panel insert-panel">
+                    <div class="panel-header"><span class="panel-title">➕ Add to Knowledge Base</span></div>
+                    <div class="panel-body">
+                        <input type="text" id="docTitle" placeholder="Document title (e.g. Microservices Architecture)" />
+                        <textarea id="docContent" placeholder="Paste document content here..." rows="5"></textarea>
+                        <button class="insert-btn" id="insertBtn" onclick="insertDocument()">Insert Document</button>
+                    </div>
+                </div>
+
+                <!-- Documents List -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">📚 Knowledge Base</span>
+                        <button onclick="loadDocuments()" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;">↻</button>
+                    </div>
+                    <div class="panel-body" style="padding:16px">
+                        <div class="docs-list" id="docsList">
+                            <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Loading documents...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <!-- Document Modal -->
+    <div id="docModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span style="font-size:20px">📄</span>
+                    <span class="modal-title" id="modalTitle">Document</span>
+                    <span class="doc-score" id="modalScore"></span>
+                </div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-content-text" id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+   
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API = '/api/knowledge';
+        let selectedProvider = 'openai';
+        let queryCount = 0, dbCount = 0, directCount = 0;
+
+        function selectProvider(name, btn) {
+            selectedProvider = name;
+            document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        async function askQuestion() {
+            const q = document.getElementById('questionInput').value.trim();
+            if (!q) return;
+
+            const btn = document.getElementById('askBtn');
+            const btnText = document.getElementById('askBtnText');
+            btn.disabled = true;
+            btnText.innerHTML = '<div class="spinner"></div>';
+
+            // Show pipeline
+            const pipeline = document.getElementById('pipeline');
+            pipeline.style.display = 'flex';
+            pipeline.style.flexDirection = 'column';
+
+            // Animate pipeline steps
+            const steps = ['step-agent', 'step-embed', 'step-search', 'step-prompt', 'step-llm', 'step-done'];
+            steps.forEach(s => document.getElementById(s).className = 'pipe-step');
+
+            let stepIndex = 0;
+            const stepTimer = setInterval(() => {
+                if (stepIndex > 0) document.getElementById(steps[stepIndex - 1]).className = 'pipe-step done';
+                if (stepIndex < steps.length) document.getElementById(steps[stepIndex]).className = 'pipe-step active';
+                stepIndex++;
+                if (stepIndex >= steps.length) clearInterval(stepTimer);
+            }, 400);
+
+            document.getElementById('decisionBadge').style.display = 'none';
+            document.getElementById('answerBox').style.display = 'none';
+
+            try {
+                const res = await fetch(`${API}/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: q, provider: selectedProvider })
+                });
+
+                clearInterval(stepTimer);
+                steps.forEach(s => document.getElementById(s).className = 'pipe-step done');
+
+                if (!res.ok) throw new Error(await res.text());
+                const data = await res.json();
+
+                // Decision Badge
+                const badge = document.getElementById('decisionBadge');
+                const icons = { 0: '⚡', 1: '🗄️', 2: '🌐' };
+                const types = { 0: 'DIRECT ANSWER', 1: 'DATABASE SEARCH', 2: 'EXTERNAL API' };
+                const classes = { 0: 'direct', 1: 'db', 2: 'external' };
+
+                badge.className = `decision-badge ${classes[data.decision]}`;
+                badge.style.display = 'flex';
+                document.getElementById('badgeIcon').textContent = icons[data.decision];
+                document.getElementById('badgeType').textContent = `Agent → ${types[data.decision]}`;
+                document.getElementById('badgeReason').textContent = data.decisionReason;
+
+                // Answer
+                const answerBox = document.getElementById('answerBox');
+                answerBox.style.display = 'block';
+
+                document.getElementById('answerMeta').innerHTML = `
+            <div class="meta-chip">Provider <span class="val">${data.provider}</span></div>
+            <div class="meta-chip">Time <span class="val">${data.responseTimeMs}ms</span></div>
+            <div class="meta-chip">Docs <span class="val">${data.retrievedDocuments?.length || 0}</span></div>
+          `;
+
+                document.getElementById('answerText').textContent = data.answer;
+
+                const conf = Math.round(data.confidenceScore * 100);
+                document.getElementById('confValue').textContent = `${conf}%`;
+                document.getElementById('confFill').style.width = `${conf}%`;
+
+                // Retrieved docs
+                // Retrieved docs with expand/collapse + modal
+                if (data.retrievedDocuments?.length > 0) {
+                    const rd = document.getElementById('retrievedDocs');
+                    rd.style.display = 'block';
+                    document.getElementById('docsContainer').innerHTML = data.retrievedDocuments
+                        .map((d, i) => `
+          <div class="doc-chip" id="doc-chip-${i}">
+            <div class="doc-chip-header" onclick="toggleDoc(${i})">
+              <div class="doc-chip-left">
+                <span class="doc-index">[${i + 1}]</span>
+                <span class="doc-title-text">${d.title || 'Untitled'}</span>
+              </div>
+              <div class="doc-chip-right">
+                <span class="doc-score">${Math.round(d.score * 100)}% match</span>
+                <button class="doc-expand-btn" onclick="event.stopPropagation(); openModal(${i})">⤢ Full</button>
+                <span class="doc-arrow" id="arrow-${i}">▼</span>
+              </div>
+            </div>
+            <div class="doc-chip-body" id="doc-body-${i}" style="display:none">
+              ${d.content}
+            </div>
+          </div>
+        `).join('');
+
+                    // Store docs globally for modal access
+                    window._retrievedDocs = data.retrievedDocuments;
+                } else {
+                    document.getElementById('retrievedDocs').style.display = 'none';
+                }
+
+                // Update stats
+                queryCount++;
+                if (data.decision === 1) dbCount++;
+                else if (data.decision === 0) directCount++;
+                updateStats();
+
+            } catch (err) {
+                clearInterval(stepTimer);
+                showToast('Error: ' + err.message, 'error');
+                pipeline.style.display = 'none';
+            }
+
+            btn.disabled = false;
+            btnText.textContent = 'Ask the AI';
+        }
+
+        async function insertDocument() {
+            const title = document.getElementById('docTitle').value.trim();
+            const content = document.getElementById('docContent').value.trim();
+            if (!content) return showToast('Content cannot be empty', 'error');
+
+            const btn = document.getElementById('insertBtn');
+            btn.disabled = true;
+            btn.textContent = 'Inserting...';
+
+            try {
+                const res = await fetch(`${API}/documents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title || 'Untitled', content })
+                });
+                if (!res.ok) throw new Error(await res.text());
+                showToast('Document inserted successfully!', 'success');
+                document.getElementById('docTitle').value = '';
+                document.getElementById('docContent').value = '';
+                loadDocuments();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Insert Document';
+        }
+
+        async function loadDocuments() {
+            try {
+                const res = await fetch(`${API}/documents`);
+                const docs = await res.json();
+
+                document.getElementById('statDocs').textContent = docs.length;
+                document.getElementById('docCount').textContent = `${docs.length} docs`;
+
+                const list = document.getElementById('docsList');
+                if (docs.length === 0) {
+                    list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">No documents yet</div>';
+                    return;
+                }
+
+                list.innerHTML = docs.map((d, i) => `
+            <div class="doc-item">
+              <div class="doc-num">#${d.id}</div>
+              <div>
+                <div class="doc-title">${d.title || 'Untitled'}</div>
+                <div class="doc-preview">${d.content}</div>
+              </div>
+            </div>
+          `).join('');
+            } catch {
+                document.getElementById('docsList').innerHTML =
+                    '<div style="color:var(--red);font-size:12px;text-align:center;padding:20px">⚠ API not reachable — start the ASP.NET server</div>';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('statQueries').textContent = queryCount;
+            document.getElementById('statDb').textContent = dbCount;
+            document.getElementById('statDirect').textContent = directCount;
+            document.getElementById('queryCount').textContent = `${queryCount} queries`;
+        }
+
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${type} show`;
+            setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        // Enter to submit
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && e.ctrlKey) askQuestion();
+        });
+
+        // Init
+        loadDocuments();
+
+        function toggleDoc(index) {
+            const body = document.getElementById(`doc-body-${index}`);
+            const arrow = document.getElementById(`arrow-${index}`);
+            const isOpen = body.style.display !== 'none';
+            body.style.display = isOpen ? 'none' : 'block';
+            arrow.textContent = isOpen ? '▼' : '▲';
+        }
+
+        function openModal(index) {
+            const doc = window._retrievedDocs[index];
+            document.getElementById('modalTitle').textContent = doc.title || 'Document';
+            document.getElementById('modalScore').textContent = `${Math.round(doc.score * 100)}% match`;
+            document.getElementById('modalContent').textContent = doc.content;
+            document.getElementById('docModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('docModal').style.display = 'none';
+        }
+
+        // Close modal on backdrop click
+        document.addEventListener('click', e => {
+            if (e.target.id === 'docModal') closeModal();
+        });
+    </script>
+</body>
+</html>
