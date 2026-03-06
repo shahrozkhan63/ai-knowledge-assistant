@@ -23,7 +23,9 @@ public class OpenAIProvider : IAIProvider
 
     public OpenAIProvider(IConfiguration config)
     {
-        _apiKey = config["OpenAI:ApiKey"]!;
+        _apiKey = Environment.GetEnvironmentVariable("OpenAI__ApiKey")
+       ?? config["OpenAI:ApiKey"]
+       ?? config["OpenAI__ApiKey"]!;
         _client = new HttpClient();
     }
 
@@ -64,7 +66,12 @@ public class ClaudeProvider : IAIProvider
 
     public ClaudeProvider(IConfiguration config)
     {
-        _apiKey = config["Anthropic:ApiKey"]!;
+       
+
+        // ClaudeProvider constructor  
+        _apiKey = Environment.GetEnvironmentVariable("Anthropic__ApiKey")
+               ?? config["Anthropic:ApiKey"]
+               ?? config["Anthropic__ApiKey"]!;
         _client = new HttpClient();
     }
 

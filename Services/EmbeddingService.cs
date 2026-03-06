@@ -12,7 +12,12 @@ public class EmbeddingService
 
     public EmbeddingService(IConfiguration config)
     {
-        _apiKey = config["OpenAI:ApiKey"]!;
+        // Try environment variable directly first
+        _apiKey = Environment.GetEnvironmentVariable("OpenAI__ApiKey")
+               ?? config["OpenAI:ApiKey"]
+               ?? config["OpenAI__ApiKey"]!;
+
+        Console.WriteLine($"[OpenAI] Key loaded: {!string.IsNullOrEmpty(_apiKey)}");
         _client = new HttpClient();
     }
 
