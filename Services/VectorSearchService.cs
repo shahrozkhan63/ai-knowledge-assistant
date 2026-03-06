@@ -10,30 +10,8 @@ public class VectorSearchService
     public string GetConnectionStatus() => _connString;
     public VectorSearchService(IConfiguration config)
     {
-        // Try DATABASE_URL first (Railway always provides this)
-        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-
-        if (!string.IsNullOrEmpty(databaseUrl))
-        {
-            // Convert PostgreSQL URL to Npgsql connection string
-            // Format: postgresql://user:password@host:port/database
-            var uri = new Uri(databaseUrl);
-            var host = uri.Host;
-            var port = uri.Port;
-            var database = uri.AbsolutePath.TrimStart('/');
-            var userInfo = uri.UserInfo.Split(':');
-            var username = userInfo[0];
-            var password = userInfo[1];
-
-            _connString = $"Host={host};Port={port};Username={username};Password={password};Database={database};SSL Mode=Require;Trust Server Certificate=true";
-            Console.WriteLine($"[DB] Railway DATABASE_URL connected: {host}:{port}/{database}");
-        }
-        else
-        {
-            // Local development fallback
-            _connString = config.GetConnectionString("DefaultConnection")!;
-            Console.WriteLine("[DB] Using local connection string");
-        }
+        _connString = config.GetConnectionString("DefaultConnection")!;
+        Console.WriteLine($"[DB] Connection string loaded: {!string.IsNullOrEmpty(_connString)}");
     }
 
     // ── Search: Find top K most similar documents ──────────────
