@@ -9,7 +9,28 @@ public class VectorSearchService
 
     public VectorSearchService(IConfiguration config)
     {
-        _connString = config.GetConnectionString("DefaultConnection")!;
+        // _connString = config.GetConnectionString("DefaultConnection")!;
+
+        var host = config["PGHOST"];
+        var port = config["PGPORT"] ?? "5432";
+        var username = config["PGUSER"];
+        var password = config["PGPASSWORD"];
+        var database = config["PGDATABASE"];
+
+        // Fallback to appsettings for local development
+        if (string.IsNullOrEmpty(host))
+        {
+            _connString = config.GetConnectionString("DefaultConnection")!;
+            Console.WriteLine("[DB] Using local connection string");
+        }
+        else
+        {
+            _connString = $"Host={host};Port={port};Username={username};Password={password};Database={database};SSL Mode=Require;Trust Server Certificate=true";
+            Console.WriteLine($"[DB] Using Railway connection: {host}:{port}/{database}");
+        }
+
+        // Add this temporarily to debug
+       // Console.WriteLine($"[DB] Connection string loaded: {!string.IsNullOrEmpty(_connString)}");
     }
 
     // ── Search: Find top K most similar documents ──────────────
