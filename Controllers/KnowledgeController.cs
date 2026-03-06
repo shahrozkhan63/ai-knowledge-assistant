@@ -12,15 +12,17 @@ public class KnowledgeController : ControllerBase
     private readonly RAGPipeline _pipeline;
     private readonly EmbeddingService _embeddingService;
     private readonly VectorSearchService _vectorSearch;
-
+    private readonly IConfiguration _configuration;
     public KnowledgeController(
         RAGPipeline pipeline,
         EmbeddingService embeddingService,
-        VectorSearchService vectorSearch)
+        VectorSearchService vectorSearch,
+    IConfiguration configuration)
     {
         _pipeline = pipeline;
         _embeddingService = embeddingService;
         _vectorSearch = vectorSearch;
+        _configuration = configuration;
     }
 
     // ── POST /api/knowledge/ask ───────────────────────────────
@@ -79,14 +81,32 @@ public class KnowledgeController : ControllerBase
     {
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
         var pgHost = Environment.GetEnvironmentVariable("PGHOST");
+        var openAiEnv = Environment.GetEnvironmentVariable("OpenAI__ApiKey");
+        var anthropicEnv = Environment.GetEnvironmentVariable("Anthropic__ApiKey");
+        var aspnetEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+        var openAiConfig = _configuration["OpenAI:ApiKey"];
+        var anthropicConfig = _configuration["Anthropic:ApiKey"];
         var connString = _vectorSearch.GetConnectionStatus();
 
         return Ok(new
         {
-            DATABASE_URL_exists = !string.IsNullOrEmpty(databaseUrl),
-            PGHOST_exists = !string.IsNullOrEmpty(pgHost),
-            DATABASE_URL_value = databaseUrl?[..Math.Min(30, databaseUrl?.Length ?? 0)] + "...",
-            connString_empty = string.IsNullOrEmpty(connString)
+            // Environment variables
+            ENV_DATABASE_URL_exists = !string.IsNullOrEmpty(databaseUrl),
+            ENV_PGHOST_exists = !string.IsNullOrEmpty(pgHost),
+            ENV_OpenAI_exists = !string.IsNullOrEmpty(openAiEnv),
+            ENV_Anthropic_exists = !string.IsNullOrEmpty(anthropicEnv),
+            ENV_ASPNETCORE = aspnetEnv,
+
+            // Config values
+            CONFIG_OpenAI_exists = !string.IsNullOrEmpty(openAiConfig),
+            CONFIG_Anthropic_exists = !string.IsNullOrEmpty(anthropicConfig),
+            CONFIG_ConnString_empty = string.IsNullOrEmpty(connString),
+
+            // First 10 chars to verify correct key loaded
+            OpenAI_key_preview = string.IsNullOrEmpty(openAiEnv)
+                                       ? openAiConfig?[..Math.Min(10, openAiConfig?.Length ?? 0)]
+                                       : openAiEnv[..Math.Min(10, openAiEnv.Length)],
         });
     }
 }
