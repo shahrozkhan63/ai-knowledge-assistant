@@ -9,28 +9,30 @@ public class VectorSearchService
 
     public VectorSearchService(IConfiguration config)
     {
-        // _connString = config.GetConnectionString("DefaultConnection")!;
+        // Try DATABASE_URL first (Railway always provides this)
+        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
-        var host = config["PGHOST"];
-        var port = config["PGPORT"] ?? "5432";
-        var username = config["PGUSER"];
-        var password = config["PGPASSWORD"];
-        var database = config["PGDATABASE"];
-
-        // Fallback to appsettings for local development
-        if (string.IsNullOrEmpty(host))
+        if (!string.IsNullOrEmpty(databaseUrl))
         {
-            _connString = config.GetConnectionString("DefaultConnection")!;
-            Console.WriteLine("[DB] Using local connection string");
+            // Convert PostgreSQL URL to Npgsql connection string
+            // Format: postgresql://user:password@host:port/database
+            var uri = new Uri(databaseUrl);
+            var host = uri.Host;
+            var port = uri.Port;
+            var database = uri.AbsolutePath.TrimStart('/');
+            var userInfo = uri.UserInfo.Split(':');
+            var username = userInfo[0];
+            var password = userInfo[1];
+
+            _connString = $"Host={host};Port={port};Username={username};Password={password};Database={database};SSL Mode=Require;Trust Server Certificate=true";
+            Console.WriteLine($"[DB] Railway DATABASE_URL connected: {host}:{port}/{database}");
         }
         else
         {
-            _connString = $"Host={host};Port={port};Username={username};Password={password};Database={database};SSL Mode=Require;Trust Server Certificate=true";
-            Console.WriteLine($"[DB] Using Railway connection: {host}:{port}/{database}");
+            // Local development fallback
+            _connString = config.GetConnectionString("DefaultConnection")!;
+            Console.WriteLine("[DB] Using local connection string");
         }
-
-        // Add this temporarily to debug
-       // Console.WriteLine($"[DB] Connection string loaded: {!string.IsNullOrEmpty(_connString)}");
     }
 
     // ── Search: Find top K most similar documents ──────────────
